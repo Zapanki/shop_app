@@ -41,7 +41,7 @@ class AuthService {
           if (snapshot.hasData) {
             return HomePage();
           } else {
-            return LoginScreen();
+            return IntroPage();
           }
         } else {
           return Scaffold(
