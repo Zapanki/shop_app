@@ -18,29 +18,36 @@ class Cart with ChangeNotifier {
 
   // Метод для получения списка товаров из корзины пользователя
   Future<void> getUserCart() async {
-    User? user = FirebaseAuth.instance.currentUser;
-    if (user != null) {
-      final cartSnapshot = await FirebaseFirestore.instance
+  User? user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    try {
+      final querySnapshot = await FirebaseFirestore.instance
           .collection('users')
           .doc(user.uid)
           .collection('cart')
           .get();
 
-      _items = cartSnapshot.docs.map((doc) {
+      List<Shoe> loadedItems = querySnapshot.docs.map((doc) {
         return Shoe(
+          id: doc.id,
           name: doc['name'],
           image: doc['image'],
           desc: doc['desc'],
-          price: doc['price'],
-          id: doc.id,
-          selectedSize: doc['size'],
-          selectedColor: doc['color'],
-          isFavorite: doc['isFavorite'] ?? false,
+          price: (doc['price'] as num).toDouble(),
+          selectedSize: doc['size'] ?? 'M',
+          selectedColor: doc['color'] ?? 'Red',
+          quantity: doc['quantity'] ?? 1,
         );
       }).toList();
-      notifyListeners();
+
+      _items = loadedItems;  // Ваша переменная, которая хранит список товаров в корзине
+      notifyListeners();  // Обновление UI после загрузки данных
+    } catch (e) {
+      print('Failed to load cart items: $e');
     }
   }
+}
+
 
   void addItemToCart(Shoe shoe) {
     _items.add(shoe);
@@ -48,7 +55,7 @@ class Cart with ChangeNotifier {
   }
 
   void removeItemFromCart(Shoe shoe) {
-    _items.remove(shoe);
+    _items.removeWhere((item) => item.id == shoe.id);
     notifyListeners();
   }
 

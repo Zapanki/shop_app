@@ -16,11 +16,9 @@ class ShopPage extends StatefulWidget {
 
 class _ShopPageState extends State<ShopPage> {
   String searchQuery = '';
-  String selectedSize = 'M';
-  String selectedColor = 'Red';
-  int selectedQuantity = 1;
   List<Shoe> shoes = [];
   Set<String> favoriteIds = Set<String>(); // Set to hold favorite shoe IDs
+  bool _isLoading = true; // Флаг для отслеживания состояния загрузки
 
   @override
   void initState() {
@@ -31,6 +29,9 @@ class _ShopPageState extends State<ShopPage> {
 
   Future<void> _loadShoes() async {
     try {
+      setState(() {
+        _isLoading = true; // Начинаем загрузку, показываем индикатор
+      });
       final querySnapshot =
           await FirebaseFirestore.instance.collection('products').get();
       final List<Shoe> loadedShoes = querySnapshot.docs.map((doc) {
@@ -49,9 +50,13 @@ class _ShopPageState extends State<ShopPage> {
       }).toList();
       setState(() {
         shoes = loadedShoes;
+        _isLoading = false; // Загрузка завершена
       });
     } catch (e) {
       print("Error loading shoes: $e");
+      setState(() {
+        _isLoading = false; // В случае ошибки завершение загрузки
+      });
     }
   }
 
@@ -105,115 +110,121 @@ class _ShopPageState extends State<ShopPage> {
               ),
             ],
           ),
-          body: filteredShoes.isEmpty
-              ? Center(child: Text('No products available'))
-              : SingleChildScrollView(
-                  child: Column(
-                    children: [
-                      Padding(
-                        padding: EdgeInsets.symmetric(horizontal: 25.0),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                          crossAxisAlignment: CrossAxisAlignment.end,
-                          children: [
-                            Text(
-                              'Hot Picks',
-                              style: TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 24,
-                              ),
+          body: _isLoading
+              ? Center(
+                  child:
+                      CircularProgressIndicator()) // Показ индикатора загрузки
+              : filteredShoes.isEmpty
+                  ? Center(
+                      child: Text('No products available')) // Если товаров нет
+                  : SingleChildScrollView(
+                      child: Column(
+                        children: [
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 25.0),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(
+                                  'Hot Picks',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    fontSize: 24,
+                                  ),
+                                ),
+                                GestureDetector(
+                                  onTap: () {
+                                    showSearch(
+                                      context: context,
+                                      delegate: ShoeSearchDelegate(shoes),
+                                    );
+                                  },
+                                  child: Text(
+                                    'See all',
+                                    style: TextStyle(color: Colors.blue),
+                                  ),
+                                ),
+                              ],
                             ),
-                            GestureDetector(
-                              onTap: () {
-                                showSearch(
-                                  context: context,
-                                  delegate: ShoeSearchDelegate(shoes),
-                                );
-                              },
-                              child: Text(
-                                'See all',
-                                style: TextStyle(color: Colors.blue),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 10),
-                      Container(
-                        height: 500,
-                        child: ListView.builder(
-                          itemCount: filteredShoes.length,
-                          scrollDirection: Axis.horizontal,
-                          itemBuilder: (context, index) {
-                            Shoe shoe = filteredShoes[index];
-                            return ShoeTile(
-                              shoe: shoe,
-                              onTap: () {
-                                Provider.of<Cart>(context, listen: false)
-                                    .addItemToCart(
-                                  shoe.copyWith(
-                                      selectedSize: selectedSize,
-                                      selectedColor: selectedColor,
-                                      quantity: selectedQuantity),
-                                );
-                                FirebaseFirestore.instance
-                                    .collection('users')
-                                    .doc(FirebaseAuth.instance.currentUser!.uid)
-                                    .collection('cart')
-                                    .add({
-                                  'name': shoe.name,
-                                  'image': shoe.image,
-                                  'desc': shoe.desc,
-                                  'price': shoe.price,
-                                  'size': selectedSize,
-                                  'color': selectedColor,
-                                  'quantity': selectedQuantity,
-                                });
-                              },
-                              selectedQuantity: selectedQuantity,
-                              onQuantityChanged: (quantity) {
-                                setState(() {
-                                  selectedQuantity = quantity ?? 1;
-                                });
-                              },
-                              onFavoriteTap: () async {
-                                setState(() {
-                                  shoe.isFavorite = !shoe.isFavorite;
-                                });
-
-                                try {
-                                  final docRef = FirebaseFirestore.instance
-                                      .collection('users')
-                                      .doc(FirebaseAuth
-                                          .instance.currentUser!.uid)
-                                      .collection('favorites')
-                                      .doc(shoe.id);
-
-                                  if (shoe.isFavorite) {
-                                    // Add to favorites
-                                    await docRef.set({
+                          ),
+                          const SizedBox(height: 10),
+                          Container(
+                            height: 500,
+                            child: ListView.builder(
+                              itemCount: filteredShoes.length,
+                              scrollDirection: Axis.horizontal,
+                              itemBuilder: (context, index) {
+                                Shoe shoe = filteredShoes[index];
+                                return ShoeTile(
+                                  shoe: shoe,
+                                  onTap: () {
+                                    Provider.of<Cart>(context, listen: false)
+                                        .addItemToCart(
+                                      shoe.copyWith(
+                                          selectedSize: shoe.selectedSize,
+                                          selectedColor: shoe.selectedColor,
+                                          quantity: shoe.quantity),
+                                    );
+                                    FirebaseFirestore.instance
+                                        .collection('users')
+                                        .doc(FirebaseAuth
+                                            .instance.currentUser!.uid)
+                                        .collection('cart')
+                                        .add({
                                       'name': shoe.name,
                                       'image': shoe.image,
                                       'desc': shoe.desc,
                                       'price': shoe.price,
                                       'size': shoe.selectedSize,
                                       'color': shoe.selectedColor,
+                                      'quantity': shoe.quantity,
                                     });
-                                  } else {
-                                    // Remove from favorites
-                                    await docRef.delete();
-                                  }
-                                } catch (e) {
-                                  print('Failed to update favorites: $e');
-                                }
+                                  },
+                                  selectedQuantity: shoe.quantity, // передаем количество товара для каждого отдельного товара
+                                  onQuantityChanged: (quantity) {
+                                    setState(() {
+                                      shoe.quantity = quantity ?? 1;
+                                    });
+                                  },
+                                  onFavoriteTap: () async {
+                                    setState(() {
+                                      shoe.isFavorite = !shoe.isFavorite;
+                                    });
+
+                                    try {
+                                      final docRef = FirebaseFirestore.instance
+                                          .collection('users')
+                                          .doc(FirebaseAuth
+                                              .instance.currentUser!.uid)
+                                          .collection('favorites')
+                                          .doc(shoe.id);
+
+                                      if (shoe.isFavorite) {
+                                        // Add to favorites
+                                        await docRef.set({
+                                          'name': shoe.name,
+                                          'image': shoe.image,
+                                          'desc': shoe.desc,
+                                          'price': shoe.price,
+                                          'size': shoe.selectedSize,
+                                          'color': shoe.selectedColor,
+                                        });
+                                      } else {
+                                        // Remove from favorites
+                                        await docRef.delete();
+                                      }
+                                    } catch (e) {
+                                      print('Failed to update favorites: $e');
+                                    }
+                                  },
+                                );
                               },
-                            );
-                          },
-                        ),
+                            ),
+                          ),
+                        ],
                       ),
-                    ],
-                  ),
-                ),
+                    ),
         );
       },
     );

@@ -1,3 +1,5 @@
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -45,6 +47,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
+                maxLength: 16,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter card number';
@@ -61,6 +64,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
+                maxLength: 4,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter expiry date';
@@ -77,6 +81,7 @@ class _PaymentPageState extends State<PaymentPage> {
                   border: OutlineInputBorder(),
                 ),
                 keyboardType: TextInputType.number,
+                maxLength: 3,
                 validator: (value) {
                   if (value == null || value.isEmpty) {
                     return 'Please enter CVV';
@@ -110,18 +115,18 @@ class _PaymentPageState extends State<PaymentPage> {
   }
 
   void _processPayment(BuildContext context) async {
-    final cart = Provider.of<Cart>(context, listen: false);
-    final User? user = FirebaseAuth.instance.currentUser;
+  final cart = Provider.of<Cart>(context, listen: false);
+  User? user = FirebaseAuth.instance.currentUser;
 
-    if (user != null) {
-      final purchasedCollection = FirebaseFirestore.instance
-          .collection('users')
-          .doc(user.uid)
-          .collection('purchased');
-
-      // Process payment and add each item to the purchased collection
-      for (var shoe in cart.items) {
-        await purchasedCollection.add({
+  if (user != null) {
+    // Перемещаем товары из корзины в покупки
+    for (var shoe in cart.items) {
+      try {
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('purchased')
+            .add({
           'name': shoe.name,
           'image': shoe.image,
           'desc': shoe.desc,
@@ -129,27 +134,41 @@ class _PaymentPageState extends State<PaymentPage> {
           'size': shoe.selectedSize,
           'color': shoe.selectedColor,
           'quantity': shoe.quantity,
+          'purchaseTime': Timestamp.now(),
         });
+        await Future.delayed(Duration(milliseconds: 500));
+
+        // Удаляем товар из корзины после добавления в покупки
+        await FirebaseFirestore.instance
+            .collection('users')
+            .doc(user.uid)
+            .collection('cart')
+            .doc(shoe.id)
+            .delete();
+      } catch (e) {
+        print('Failed to process payment for ${shoe.name}: $e');
       }
-
-      // Clear the cart after payment
-      cart.clearCart();
-
-      // Show a confirmation message
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Payment successful!'),
-        ),
-      );
-
-      // Navigate back to the home screen or another appropriate screen
-      Navigator.of(context).popUntil((route) => route.isFirst);
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('User not logged in. Payment failed.'),
-        ),
-      );
     }
+
+    // Очищаем локальную корзину
+    cart.clearCart();
+
+    // Показываем сообщение об успешной оплате
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Payment successful!'),
+      ),
+    );
+
+    // Возвращаемся на главную страницу или на экран покупок
+    Navigator.of(context).popUntil((route) => route.isFirst);
+  } else {
+    // Показываем сообщение об ошибке, если пользователь не авторизован
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('User not logged in!'),
+      ),
+    );
   }
+}
 }

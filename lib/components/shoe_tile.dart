@@ -169,7 +169,7 @@ class _ShoeTileState extends State<ShoeTile> {
                 style: ElevatedButton.styleFrom(
                   foregroundColor: Colors.white, // Цвет текста
                   backgroundColor:
-                      Colors.grey[500], // Основной серый цвет кнопки
+                       Colors.purple[700], // Основной серый цвет кнопки
                   padding: EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius:
@@ -182,6 +182,7 @@ class _ShoeTileState extends State<ShoeTile> {
                   style: TextStyle(
                     fontSize: 18, // Размер текста
                     fontWeight: FontWeight.bold, // Жирность текста
+                    color: Colors.white,
                   ),
                 ),
               )

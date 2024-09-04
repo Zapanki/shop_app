@@ -1,6 +1,10 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:lottie/lottie.dart';
 import 'package:provider/provider.dart';
 import 'package:shop_app/models/cart.dart';
+import 'package:shop_app/models/shoe.dart';
 import 'package:shop_app/pages/cart_page/payment_page.dart';
 
 class CartPage extends StatelessWidget {
@@ -14,7 +18,30 @@ class CartPage extends StatelessWidget {
       ),
       body: Consumer<Cart>(
         builder: (context, cart, child) {
-          return Column(
+          if (cart.itemCount == 0) {
+            // Если товаров в корзине нет, показываем сообщение и анимацию
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    'Your Cart is Empty',
+                    style: TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.purple[700],
+                    ),
+                  ),
+                  SizedBox(height: 20),
+                  Container(
+                    height: 200,
+                    child: Lottie.asset('assets/Animation - 1725208078442.json'), // Убедитесь, что путь к анимации правильный
+                  ),
+                ],
+              ),
+            );
+          }else{
+            return Column(
             children: [
               Expanded(
                 child: ListView.builder(
@@ -35,10 +62,9 @@ class CartPage extends StatelessWidget {
                       trailing: IconButton(
                         icon: Icon(Icons.delete),
                         onPressed: () {
-                          cart.removeItemFromCart(shoe);
+                          _confirmDeletion(context, shoe, cart);
                         },
-                      ),
-                    );
+                      ),);
                   },
                 ),
               ),
@@ -90,8 +116,46 @@ class CartPage extends StatelessWidget {
               ),
             ],
           );
+          }
+          
         },
       ),
+    );
+  }
+  void _confirmDeletion(BuildContext context, Shoe shoe, Cart cart) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Confirm Deletion'),
+          content: Text('Are you sure you want to remove this item from the cart?'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                Navigator.of(context).pop(); // Закрыть диалоговое окно
+              },
+              child: Text('Cancel'),
+            ),
+            TextButton(
+              onPressed: () async {
+                // Удаляем товар из корзины в базе данных Firebase
+                await FirebaseFirestore.instance
+                    .collection('users')
+                    .doc(FirebaseAuth.instance.currentUser!.uid)
+                    .collection('cart')
+                    .doc(shoe.id)
+                    .delete();
+
+                // Удаляем товар из локальной корзины
+                cart.removeItemFromCart(shoe);
+
+                Navigator.of(context).pop(); // Закрыть диалоговое окно
+              },
+              child: Text('Delete'),
+            ),
+          ],
+        );
+      },
     );
   }
 }

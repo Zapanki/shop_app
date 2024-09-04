@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shop_app/pages/cart_page/cart_page.dart';
 import 'package:shop_app/components/bottom_nav_bar.dart';
+import 'package:shop_app/pages/home_page/about_page.dart';
 import 'package:shop_app/pages/profile/profile_page.dart';
 import 'package:shop_app/pages/home_page/shop_page.dart';
 
@@ -24,7 +25,15 @@ class _HomePageState extends State<HomePage> {
     const ShopPage(),
     CartPage(),
     const ProfilePage(),
+    const AboutPage(),  // Добавлена страница AboutPage в список страниц
   ];
+
+  void navigateToPage(int index) {
+    setState(() {
+      _selectedIndex = index;
+    });
+    Navigator.pop(context);  // Закрытие Drawer после перехода
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,34 +76,40 @@ class _HomePageState extends State<HomePage> {
                 color: Colors.grey[800],
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 25),
+            Padding(
+              padding: const EdgeInsets.only(left: 25),
               child: ListTile(
-                leading: Icon(
+                leading: const Icon(
                   Icons.home,
                   color: Colors.white,
                 ),
-                title: Text(
+                title: const Text(
                   'Home',
                   style: TextStyle(
                     color: Colors.white,
                   ),
                 ),
+                onTap: () {
+                  navigateToPage(0); // Переход на страницу ShopPage (Home)
+                },
               ),
             ),
-            const Padding(
-              padding: EdgeInsets.only(left: 25),
+            Padding(
+              padding: const EdgeInsets.only(left: 25),
               child: ListTile(
-                leading: Icon(
+                leading: const Icon(
                   Icons.info,
                   color: Colors.white,
                 ),
-                title: Text(
+                title: const Text(
                   'About',
                   style: TextStyle(
                     color: Colors.white,
                   ),
                 ),
+                onTap: () {
+                  navigateToPage(3); // Переход на страницу AboutPage
+                },
               ),
             ),
           ],

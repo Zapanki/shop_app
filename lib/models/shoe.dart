@@ -7,7 +7,9 @@ class Shoe {
   String selectedSize;
   String selectedColor;
   bool isFavorite;
-  int quantity;  // Добавлено поле quantity
+  int quantity; // Добавлено поле quantity
+
+  DateTime? purchaseTime;
 
   Shoe({
     required this.id,
@@ -18,7 +20,8 @@ class Shoe {
     this.selectedSize = 'M',
     this.selectedColor = 'Red',
     this.isFavorite = false,
-    this.quantity = 1,  // Установлено значение по умолчанию
+    this.quantity = 1, // Установлено значение по умолчанию
+    this.purchaseTime,
   });
 
   Shoe copyWith({
@@ -30,7 +33,8 @@ class Shoe {
     String? selectedSize,
     String? selectedColor,
     bool? isFavorite,
-    int? quantity,  // Добавлено в метод copyWith
+    int? quantity, // Добавлено в метод copyWith
+    final DateTime? purchaseTime,
   }) {
     return Shoe(
       id: id ?? this.id,
@@ -41,7 +45,8 @@ class Shoe {
       selectedSize: selectedSize ?? this.selectedSize,
       selectedColor: selectedColor ?? this.selectedColor,
       isFavorite: isFavorite ?? this.isFavorite,
-      quantity: quantity ?? this.quantity,  // Присваиваем значение quantity
+      quantity: quantity ?? this.quantity, // Присваиваем значение quantity
+      purchaseTime: purchaseTime ?? this.purchaseTime,
     );
   }
 }
